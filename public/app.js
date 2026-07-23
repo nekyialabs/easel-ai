@@ -41,10 +41,20 @@ const SETTINGS_KEY = 'easel:settings';
 const BEST_VARIANTS_KEY = 'easel:best-variants';
 const DRAFTS_KEY = 'easel:prompt-drafts';
 const SKETCHPAD_KEY = 'easel:sketchpad';
+const PRESET_FILTER_KEY = 'easel:preset-filter';
+const PRESET_FILTER_VALUES = ['all', 'character', 'style'];
+
+function loadPresetFilter() {
+  const v = localStorage.getItem(PRESET_FILTER_KEY);
+  return PRESET_FILTER_VALUES.includes(v) ? v : 'all';
+}
+function savePresetFilter(v) {
+  if (PRESET_FILTER_VALUES.includes(v)) localStorage.setItem(PRESET_FILTER_KEY, v);
+}
 
 state.bestVariants = loadJson(BEST_VARIANTS_KEY, {});
 state.presetSearch = '';
-state.presetTypeFilter = 'all';
+state.presetTypeFilter = loadPresetFilter();
 
 // ---- API ----
 async function api(path, opts = {}) {
@@ -983,6 +993,10 @@ async function renderPresets() {
   await loadPresets();
   const root = $('#view-root');
 
+  const countAll = state.presets.length;
+  const countCharacter = state.presets.filter((p) => p.type === 'character').length;
+  const countStyle = state.presets.filter((p) => p.type === 'style').length;
+
   root.innerHTML = `
     <div class="presets-layout">
       <div>
@@ -996,9 +1010,9 @@ async function renderPresets() {
             <input id="preset-search-input" type="search" value="${escapeHtml(state.presetSearch)}" placeholder="Search presets..." autocomplete="off" />
           </label>
           <div class="preset-filter" role="tablist" aria-label="Preset type filter">
-            <button type="button" data-preset-filter="all" class="${state.presetTypeFilter === 'all' ? 'active' : ''}">All</button>
-            <button type="button" data-preset-filter="character" class="${state.presetTypeFilter === 'character' ? 'active' : ''}">Characters</button>
-            <button type="button" data-preset-filter="style" class="${state.presetTypeFilter === 'style' ? 'active' : ''}">Styles</button>
+            <button type="button" data-preset-filter="all" class="${state.presetTypeFilter === 'all' ? 'active' : ''}">All (${countAll})</button>
+            <button type="button" data-preset-filter="character" class="${state.presetTypeFilter === 'character' ? 'active' : ''}">Characters (${countCharacter})</button>
+            <button type="button" data-preset-filter="style" class="${state.presetTypeFilter === 'style' ? 'active' : ''}">Styles (${countStyle})</button>
           </div>
         </div>
         <div class="presets-list" id="presets-list"></div>
@@ -1027,10 +1041,11 @@ async function renderPresets() {
     listRoot.innerHTML = '';
     for (const p of visible) {
       const el = document.createElement('div');
-      el.className = 'preset-item' + (p.id === selectedId ? ' active' : '');
+      el.className = `preset-item preset-item--${p.type}${p.id === selectedId ? ' active' : ''}`;
       el.dataset.presetId = p.id;
       el.innerHTML = `
         <div>
+          <span class="preset-item-glyph" aria-hidden="true">${p.type === 'style' ? '✦' : '●'}</span>
           <span class="preset-item-name">${escapeHtml(p.name)}</span>
           <span class="preset-item-version">v${p.version}</span>
           <span class="preset-item-type ${p.type}">${p.type}</span>
@@ -1068,6 +1083,7 @@ async function renderPresets() {
   $$('.preset-filter button').forEach((btn) => {
     btn.addEventListener('click', () => {
       state.presetTypeFilter = btn.dataset.presetFilter;
+      savePresetFilter(state.presetTypeFilter);
       $$('.preset-filter button').forEach((el) =>
         el.classList.toggle('active', el.dataset.presetFilter === state.presetTypeFilter),
       );
