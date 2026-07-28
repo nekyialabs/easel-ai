@@ -1,3 +1,9 @@
+// Must be the FIRST import: ESM evaluates imports in source order, and
+// ./openai.js reads process.env.OPENAI_API_KEY at module-load time. Loading
+// dotenv any later leaves that read seeing an empty env, which surfaces as a
+// 401 from the OpenAI API that misleadingly blames the user's own key.
+import 'dotenv/config';
+
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
