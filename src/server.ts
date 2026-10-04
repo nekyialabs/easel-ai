@@ -158,12 +158,52 @@ app.get('/api/folders', (c) => {
 
 app.post('/api/folders', async (c) => {
   const body = (await c.req.json()) as { name: string };
-  if (!body.name?.trim()) return c.json({ error: 'name required' }, 400);
+  const name = body.name?.trim();
+  if (!name) return c.json({ error: 'name required' }, 400);
+  const collision = db
+    .prepare('SELECT id FROM folders WHERE LOWER(name) = LOWER(?)')
+    .get(name) as { id: string } | undefined;
+  if (collision) return c.json({ error: 'A folder with that name already exists' }, 409);
   const id = newId('fld');
   const now = Date.now();
-  db.prepare('INSERT INTO folders (id, name, created_at) VALUES (?, ?, ?)').run(id, body.name, now);
+  db.prepare('INSERT INTO folders (id, name, created_at) VALUES (?, ?, ?)').run(id, name, now);
   const row = db.prepare('SELECT * FROM folders WHERE id = ?').get(id) as Folder;
   return c.json(row);
+});
+
+app.patch('/api/folders/:id', async (c) => {
+  const id = c.req.param('id');
+  const existing = db.prepare('SELECT * FROM folders WHERE id = ?').get(id) as Folder | undefined;
+  if (!existing) return c.json({ error: 'not found' }, 404);
+  const body = (await c.req.json()) as { name: string };
+  const name = body.name?.trim();
+  if (!name) return c.json({ error: 'name required' }, 400);
+  const collision = db
+    .prepare('SELECT id FROM folders WHERE LOWER(name) = LOWER(?) AND id != ?')
+    .get(name, id) as { id: string } | undefined;
+  if (collision) return c.json({ error: 'A folder with that name already exists' }, 409);
+  db.prepare('UPDATE folders SET name = ? WHERE id = ?').run(name, id);
+  const row = db.prepare('SELECT * FROM folders WHERE id = ?').get(id) as Folder;
+  return c.json(row);
+});
+
+app.delete('/api/folders/:id', (c) => {
+  const id = c.req.param('id');
+  const existing = db.prepare('SELECT id FROM folders WHERE id = ?').get(id) as
+    | { id: string }
+    | undefined;
+  if (!existing) return c.json({ error: 'not found' }, 404);
+  // Transaction: move contained tasks to root (folder_id = NULL), then delete
+  // the folder row. Either both succeed or neither — no orphan tasks pointing
+  // at a folder that no longer exists.
+  const moved = db.transaction(() => {
+    const res = db
+      .prepare('UPDATE tasks SET folder_id = NULL WHERE folder_id = ?')
+      .run(id);
+    db.prepare('DELETE FROM folders WHERE id = ?').run(id);
+    return res.changes as number;
+  })();
+  return c.json({ ok: true, moved });
 });
 
 // ---- Tasks (and variants) ----
