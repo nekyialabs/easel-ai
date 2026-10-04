@@ -12,7 +12,7 @@
 
 <p align="center"><em>A local-first, BYOK image gallery with character/style presets and an AI prompt workshop.<br/>Self-hosted replacement for Sora's "my media" after the April 2026 shutdown.</em></p>
 
-<p align="center"><em>Part of the <a href="https://github.com/codependentai/resonant">Resonant</a> ecosystem — local-first creative tools that outlive the platforms they connect to.</em></p>
+<p align="center"><em>Part of the <a href="https://github.com/nekyialabs/resonant">Resonant</a> ecosystem — local-first creative tools that outlive the platforms they connect to.</em></p>
 
 <p align="center">
   <a href="https://x.com/codependent_ai"><img src="https://img.shields.io/badge/𝕏-@codependent__ai-000000?logo=x&logoColor=white" alt="X/Twitter" /></a>
@@ -43,7 +43,7 @@
 Requires Node.js 20+. Bring your own OpenAI API key.
 
 ```bash
-git clone https://github.com/codependentai/easel-ai.git
+git clone https://github.com/nekyialabs/easel-ai.git
 cd easel-ai
 npm install
 cp .env.example .env

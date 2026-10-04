@@ -4,10 +4,10 @@
   "description": "Local-first, BYOK image gallery with character/style presets and an AI prompt workshop. A self-hosted replacement for Sora's 'my media' after the April 2026 shutdown.",
   "license": "Apache-2.0",
   "author": "Codependent AI",
-  "homepage": "https://github.com/codependentai/easel-ai",
+  "homepage": "https://github.com/nekyialabs/easel-ai",
   "repository": {
     "type": "git",
-    "url": "https://github.com/codependentai/easel-ai.git"
+    "url": "https://github.com/nekyialabs/easel-ai.git"
   },
   "type": "module",
   "scripts": {
