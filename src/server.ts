@@ -1,3 +1,9 @@
+// Must be the FIRST import: ESM evaluates imports in source order, and
+// ./openai.js reads process.env.OPENAI_API_KEY at module-load time. Loading
+// dotenv any later leaves that read seeing an empty env, which surfaces as a
+// 401 from the OpenAI API that misleadingly blames the user's own key.
+import 'dotenv/config';
+
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
@@ -17,6 +23,15 @@ const PUBLIC_DIR = join(ROOT, 'public');
 
 mkdirSync(IMAGES_DIR, { recursive: true });
 mkdirSync(REFS_DIR, { recursive: true });
+
+// Generation runs synchronously inside the request handler, so any task still
+// 'pending' at boot was interrupted by a crash/restart and will never finish.
+const sweptPending = db
+  .prepare(`UPDATE tasks SET status = 'failed', error = 'interrupted by server restart' WHERE status = 'pending'`)
+  .run();
+if (sweptPending.changes > 0) {
+  console.log(`[easel] marked ${sweptPending.changes} interrupted pending task(s) as failed`);
+}
 
 const ALLOWED_UPLOAD_EXT = new Set(['.png', '.webp', '.jpg', '.jpeg']);
 const MAX_UPLOAD_BYTES = 24 * 1024 * 1024; // 24MB, slightly under OpenAI's 25MB limit
@@ -724,7 +739,11 @@ app.use('/*', serveStatic({ root: './public' }));
 app.get('/', serveStatic({ path: './public/index.html' }));
 
 const port = Number(process.env.PORT ?? 5178);
-serve({ fetch: app.fetch, port }, (info) => {
+// Bind to loopback by default: there is no auth on any endpoint, so exposing
+// the gallery (and the BYOK generate endpoint) to the LAN must be opt-in via
+// EASEL_HOST=0.0.0.0.
+const hostname = process.env.EASEL_HOST ?? '127.0.0.1';
+serve({ fetch: app.fetch, port, hostname }, (info) => {
   console.log(`\n  easel ready`);
   console.log(`  → http://localhost:${info.port}\n`);
 });
