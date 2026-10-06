@@ -962,6 +962,7 @@ body {
 .preset-item {
   background: rgba(33, 31, 27, 0.35);
   border: 1px solid transparent;
+  border-left-width: 3px;
   border-radius: 10px;
   padding: 10px 12px;
   cursor: pointer;
@@ -999,6 +1000,39 @@ body {
   font-size: 0.52rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+/* Visual type-coding — glyph + left-border + pill color distinguish
+   character vs style at a glance, complementing the existing text label. */
+.preset-item-type.character {
+  background: rgba(196, 168, 114, 0.06);
+  color: var(--gold-dim);
+  border-color: rgba(196, 168, 114, 0.22);
+}
+.preset-item-type.style {
+  background: rgba(207, 194, 164, 0.12);
+  color: var(--text-accent);
+  border-color: rgba(207, 194, 164, 0.35);
+}
+.preset-item-glyph {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  margin-right: 8px;
+  opacity: 0.9;
+}
+/* Specificity bump (.preset-item.preset-item--X) ties .preset-item.active
+   so the type left-border color survives the selection border. */
+.preset-item.preset-item--character {
+  border-left-color: rgba(196, 168, 114, 0.22);
+}
+.preset-item.preset-item--character .preset-item-glyph {
+  color: rgba(196, 168, 114, 0.55);
+}
+.preset-item.preset-item--style {
+  border-left-color: var(--text-accent);
+}
+.preset-item.preset-item--style .preset-item-glyph {
+  color: var(--text-accent);
 }
 
 .preset-detail {
