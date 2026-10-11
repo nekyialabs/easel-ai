@@ -63,6 +63,7 @@ All config is via environment variables. See [`.env.example`](./.env.example) fo
 | `EASEL_IMAGE_MODEL` | `gpt-image-1.5` | Set to `gpt-image-2` for the newer model — that one **requires a verified organisation** on `platform.openai.com`. |
 | `EASEL_TEXT_MODEL` | `gpt-5.4` | Used by the Workshop. Must support image inputs (vision) for `from-image` to work. |
 | `PORT` | `5178` | HTTP port. |
+| `EASEL_HOST` | `127.0.0.1` | Bind address. Loopback-only by default because there is no auth; set `0.0.0.0` to deliberately expose to your LAN. |
 
 ## Data layout
 

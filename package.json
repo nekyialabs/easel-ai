@@ -16,15 +16,16 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@hono/node-server": "^1.13.7",
-    "better-sqlite3": "^11.5.0",
-    "hono": "^4.6.12",
-    "openai": "^4.77.0"
+    "@hono/node-server": "1.19.14",
+    "better-sqlite3": "11.10.0",
+    "dotenv": "17.4.2",
+    "hono": "4.12.28",
+    "openai": "4.104.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.12",
-    "@types/node": "^22.10.2",
-    "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "@types/better-sqlite3": "7.6.13",
+    "@types/node": "22.19.17",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3"
   }
 }
