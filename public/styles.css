@@ -864,6 +864,110 @@ body {
   font-family: var(--font-body);
 }
 .popover-footer button:hover { background: rgba(196, 168, 114, 0.08); }
+.popover-footer button.danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.popover-footer button.danger:hover { background: rgba(176, 112, 104, 0.12); }
+
+/* ---- Confirm dialog (uses .popover-backdrop) ---- */
+.confirm-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(26, 25, 22, 0.97);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  padding: 10px 6px 6px;
+  min-width: 320px;
+  max-width: 440px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  animation: pop-in 0.15s ease;
+}
+.confirm-body {
+  padding: 8px 14px 12px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.confirm-footer {
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* ---- Folder row (sidebar): action buttons revealed on hover ---- */
+.folder-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.folder-row .nav-item {
+  flex: 1;
+  min-width: 0;
+  padding-right: 56px;
+}
+.folder-row .folder-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.folder-row-actions {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  gap: 2px;
+}
+.folder-row:hover .folder-row-actions,
+.folder-row:focus-within .folder-row-actions {
+  display: flex;
+}
+.folder-row-action {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--gold-dim);
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all var(--transition-fast);
+}
+.folder-row-action:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(196, 168, 114, 0.06);
+}
+.folder-row-action--danger:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: rgba(176, 112, 104, 0.1);
+}
+.folder-row-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--gold-dim);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  padding: 4px 8px;
+  margin: 2px 0;
+  outline: none;
+}
+.folder-row-input:focus {
+  border-color: var(--gold);
+  background: rgba(255, 255, 255, 0.05);
+}
 
 /* ---- Presets manager ---- */
 .presets-layout {

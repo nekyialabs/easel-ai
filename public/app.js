@@ -164,6 +164,68 @@ function closePopover() {
   document.getElementById('active-popover')?.remove();
 }
 
+// Confirm-dialog primitive — reuses the popover backdrop, centered card.
+// Returns a Promise that resolves to true on confirm, false on cancel/dismiss.
+// { title, body, confirmLabel, cancelLabel = 'Cancel', danger = false }
+function confirmDialog(opts) {
+  return new Promise((resolve) => {
+    closePopover();
+    let settled = false;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      document.getElementById('active-confirm')?.remove();
+      document.removeEventListener('keydown', onKey);
+      resolve(value);
+    };
+    const onKey = (ev) => {
+      if (ev.key === 'Escape') {
+        ev.preventDefault();
+        finish(false);
+      }
+    };
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'popover-backdrop';
+    backdrop.id = 'active-confirm';
+    backdrop.addEventListener('click', () => finish(false));
+
+    const card = document.createElement('div');
+    card.className = 'confirm-dialog';
+    card.addEventListener('click', (e) => e.stopPropagation());
+
+    const title = document.createElement('div');
+    title.className = 'popover-title';
+    title.textContent = opts.title;
+    card.appendChild(title);
+
+    const body = document.createElement('div');
+    body.className = 'confirm-body';
+    body.textContent = opts.body;
+    card.appendChild(body);
+
+    const footer = document.createElement('div');
+    footer.className = 'popover-footer confirm-footer';
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.textContent = opts.cancelLabel ?? 'Cancel';
+    cancel.addEventListener('click', () => finish(false));
+    const confirm = document.createElement('button');
+    confirm.type = 'button';
+    confirm.textContent = opts.confirmLabel;
+    if (opts.danger) confirm.classList.add('danger');
+    confirm.addEventListener('click', () => finish(true));
+    footer.appendChild(cancel);
+    footer.appendChild(confirm);
+    card.appendChild(footer);
+
+    backdrop.appendChild(card);
+    document.body.appendChild(backdrop);
+    document.addEventListener('keydown', onKey);
+    confirm.focus();
+  });
+}
+
 // ---- Data loaders ----
 async function loadFolders() {
   state.folders = await api('/api/folders');
@@ -188,22 +250,144 @@ function renderFolders() {
   const root = $('#folder-list');
   root.innerHTML = '';
   for (const f of state.folders) {
-    const el = document.createElement('a');
-    el.className = 'nav-item' + (state.view === 'folder' && state.folderId === f.id ? ' active' : '');
-    el.href = `#folder/${f.id}`;
-    el.dataset.folderId = f.id;
-    el.innerHTML = `<span class="nav-icon">${icon('folder', { size: 16 })}</span><span>${escapeHtml(f.name)}</span>`;
-    el.onclick = (ev) => {
+    const row = document.createElement('div');
+    row.className = 'folder-row';
+    row.dataset.folderId = f.id;
+
+    const link = document.createElement('a');
+    link.className = 'nav-item' + (state.view === 'folder' && state.folderId === f.id ? ' active' : '');
+    link.href = `#folder/${f.id}`;
+    link.dataset.folderId = f.id;
+    link.innerHTML = `<span class="nav-icon">${icon('folder', { size: 16 })}</span><span class="folder-label">${escapeHtml(f.name)}</span>`;
+    link.onclick = (ev) => {
       ev.preventDefault();
       goto('folder', { folderId: f.id });
     };
-    root.appendChild(el);
+    row.appendChild(link);
+
+    const actions = document.createElement('span');
+    actions.className = 'folder-row-actions';
+    const renameBtn = document.createElement('button');
+    renameBtn.type = 'button';
+    renameBtn.className = 'folder-row-action';
+    renameBtn.title = 'Rename folder';
+    renameBtn.textContent = '✎';
+    renameBtn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      startFolderRename(f, row, link);
+    });
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'folder-row-action folder-row-action--danger';
+    deleteBtn.title = 'Delete folder';
+    deleteBtn.textContent = '🗑';
+    deleteBtn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      startFolderDelete(f);
+    });
+    actions.appendChild(renameBtn);
+    actions.appendChild(deleteBtn);
+    row.appendChild(actions);
+
+    root.appendChild(row);
   }
   if (state.folders.length === 0) {
     const empty = document.createElement('div');
     empty.style.cssText = 'font-size: 0.72rem; color: var(--text-muted); padding: 4px 10px; font-style: italic;';
     empty.textContent = 'No folders yet';
     root.appendChild(empty);
+  }
+}
+
+function startFolderRename(folder, row, link) {
+  const label = link.querySelector('.folder-label');
+  if (!label) return;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'folder-row-input';
+  input.value = folder.name;
+  input.addEventListener('click', (ev) => ev.stopPropagation());
+
+  let settled = false;
+  const cancel = () => {
+    if (settled) return;
+    settled = true;
+    input.replaceWith(label);
+  };
+  const commit = async () => {
+    if (settled) return;
+    const name = input.value.trim();
+    if (!name || name === folder.name) return cancel();
+    settled = true;
+    try {
+      const updated = await api(`/api/folders/${folder.id}`, {
+        method: 'PATCH',
+        body: { name },
+      });
+      folder.name = updated.name;
+      label.textContent = updated.name;
+      input.replaceWith(label);
+      toast('Renamed', 'ok');
+      await loadFolders();
+    } catch (e) {
+      settled = false;
+      toast(e.message || 'Rename failed', 'err');
+      input.focus();
+      input.select();
+    }
+  };
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      commit();
+    } else if (ev.key === 'Escape') {
+      ev.preventDefault();
+      cancel();
+    }
+  });
+  input.addEventListener('blur', cancel);
+
+  label.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+async function startFolderDelete(folder) {
+  // Authoritative count comes from a fresh fetch — sidebar state may be stale.
+  let count = 0;
+  try {
+    const rows = await api(`/api/tasks?view=folder&folder_id=${encodeURIComponent(folder.id)}`);
+    count = Array.isArray(rows) ? rows.length : 0;
+  } catch {
+    // Fall back to local estimate if the fetch fails
+    count = (state.tasks ?? []).filter((t) => t.folder_id === folder.id).length;
+  }
+  const body = count === 0
+    ? "The folder is empty. It'll be deleted."
+    : `This folder contains ${count} image${count === 1 ? '' : 's'}. They'll be moved to My Media and the folder will be deleted.`;
+  const ok = await confirmDialog({
+    title: `Delete folder '${folder.name}'?`,
+    body,
+    confirmLabel: 'Delete folder',
+    danger: true,
+  });
+  if (!ok) return;
+  try {
+    const res = await api(`/api/folders/${folder.id}`, { method: 'DELETE' });
+    const movedMsg = res && res.moved > 0
+      ? `Deleted (moved ${res.moved} to My Media)`
+      : 'Folder deleted';
+    toast(movedMsg, 'ok');
+    await loadFolders();
+    if (state.view === 'folder' && state.folderId === folder.id) {
+      goto('media');
+    } else {
+      renderFolders();
+    }
+  } catch (e) {
+    toast(e.message || 'Delete failed', 'err');
   }
 }
 
