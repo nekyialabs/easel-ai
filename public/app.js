@@ -390,11 +390,14 @@ async function startFolderDelete(folder) {
       ? `Deleted (moved ${res.moved} to My Media)`
       : 'Folder deleted';
     toast(movedMsg, 'ok');
-    await loadFolders();
+    // Items return to Media, so the grid must reload. refreshView reloads folders
+    // for gallery views; other views (presets, workshop, detail) load them here.
     if (state.view === 'folder' && state.folderId === folder.id) {
-      goto('media');
+      await goto('media');
     } else {
-      renderFolders();
+      await refreshView();
+      if (!isGalleryView()) await loadFolders();
+      setViewTitle();
     }
   } catch (e) {
     toast(e.message || 'Delete failed', 'err');
@@ -642,7 +645,14 @@ async function exportTasks(taskIds) {
 }
 
 async function moveTasksToFolder(taskIds, folderId) {
-  const previous = taskIds.map((id) => ({ id, folder_id: taskById(id)?.folder_id ?? null }));
+  // Read the current folder from the server: in the detail view (or a #gen/ deep
+  // link) state.tasks may be stale or empty, and Undo must restore the real folder.
+  const previous = await Promise.all(
+    taskIds.map(async (id) => {
+      const fresh = await api(`/api/tasks/${id}`).catch(() => null);
+      return { id, folder_id: fresh ? fresh.folder_id ?? null : taskById(id)?.folder_id ?? null };
+    }),
+  );
   await Promise.all(
     taskIds.map((id) => api(`/api/tasks/${id}`, { method: 'PATCH', body: { folder_id: folderId } })),
   );
@@ -752,8 +762,9 @@ function openNewFolderDialog({ onCreated } = {}) {
   });
 }
 
-function openMoveMenu(anchor, taskIds) {
-  const firstTask = taskById(taskIds[0]);
+async function openMoveMenu(anchor, taskIds) {
+  // state.tasks may not hold this task (detail view), so fall back to the server for the active marker.
+  const firstTask = taskById(taskIds[0]) ?? (await api(`/api/tasks/${taskIds[0]}`).catch(() => null));
   const options = [
     { value: '', label: 'No folder', active: taskIds.length === 1 && !firstTask?.folder_id },
     ...state.folders.map((f) => ({
@@ -1103,7 +1114,11 @@ function renderGallery() {
       trash: { icon: 'trash', title: 'Trash is empty', hint: 'Removed generations land here before they\'re gone forever.' },
       folder: { icon: 'folder', title: 'Folder is empty', hint: 'Generate with this folder open, or move things in from the gallery.' },
     };
-    const e = emptyByView[state.view] ?? emptyByView.media;
+    const e = { ...(emptyByView[state.view] ?? emptyByView.media) };
+    if (state.view === 'media' && state.folders.some((f) => f.item_count > 0)) {
+      e.title = "Everything's in folders";
+      e.hint = 'Nothing is loose in My media. Open a folder from the sidebar, or generate something new.';
+    }
     root.innerHTML = `<div class="empty-state">
       <div class="empty-state-icon">${icon(e.icon, { size: 48 })}</div>
       <div class="empty-state-title">${e.title}</div>
@@ -2026,6 +2041,8 @@ async function refreshView() {
   if (state.view === 'detail') return renderDetail(state.detailId);
   if (state.view === 'workshop') return renderWorkshop();
   await loadTasks();
+  // Folder item counts change when things move, trash or restore; keep the media empty state honest.
+  await loadFolders().catch(() => {});
   renderGallery();
 }
 

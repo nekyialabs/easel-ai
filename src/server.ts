@@ -167,7 +167,13 @@ app.patch('/api/presets/:id', async (c) => {
 // ---- Folders ----
 
 app.get('/api/folders', (c) => {
-  const rows = db.prepare('SELECT * FROM folders ORDER BY name ASC').all() as Folder[];
+  // item_count = non-trashed tasks in the folder (lets the UI tell "nothing yet" from "all in folders").
+  const rows = db
+    .prepare(
+      `SELECT f.*, (SELECT COUNT(*) FROM tasks t WHERE t.folder_id = f.id AND t.trashed = 0) AS item_count
+       FROM folders f ORDER BY f.name ASC`,
+    )
+    .all() as Array<Folder & { item_count: number }>;
   return c.json(rows);
 });
 
@@ -212,11 +218,18 @@ app.delete('/api/folders/:id', (c) => {
   // the folder row. Either both succeed or neither — no orphan tasks pointing
   // at a folder that no longer exists.
   const moved = db.transaction(() => {
-    const res = db
+    // Report only non-trashed items (what the user sees in the folder); trashed
+    // members still lose their folder in the UPDATE below.
+    const visible = (
+      db
+        .prepare('SELECT COUNT(*) AS n FROM tasks WHERE folder_id = ? AND trashed = 0')
+        .get(id) as { n: number }
+    ).n;
+    db
       .prepare('UPDATE tasks SET folder_id = NULL WHERE folder_id = ?')
       .run(id);
     db.prepare('DELETE FROM folders WHERE id = ?').run(id);
-    return res.changes as number;
+    return visible;
   })();
   return c.json({ ok: true, moved });
 });
@@ -403,7 +416,7 @@ app.post('/api/export', async (c) => {
 });
 
 app.get('/api/tasks', (c) => {
-  const view = c.req.query('view') ?? 'media'; // media | favorites | trash | folder | all
+  const view = c.req.query('view') ?? 'media'; // media (root only) | favorites | trash | folder | all
   const folderId = c.req.query('folder_id') ?? null;
 
   let where = '';
@@ -414,7 +427,7 @@ app.get('/api/tasks', (c) => {
   else if (view === 'folder' && folderId) {
     where = 'WHERE folder_id = ? AND trashed = 0';
     args.push(folderId);
-  } else where = 'WHERE trashed = 0';
+  } else where = 'WHERE trashed = 0 AND folder_id IS NULL'; // media: only items not in any folder
 
   const tasks = db
     .prepare(`SELECT * FROM tasks ${where} ORDER BY created_at DESC LIMIT 500`)

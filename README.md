@@ -87,14 +87,14 @@ The frontend talks to a small REST API on the same origin. If you want to drive 
 
 | Method | Path | What it does |
 |---|---|---|
-| `GET` | `/api/tasks?view=media\|favorites\|trash\|folder&folder_id=…` | List tasks with their variants and presets. |
+| `GET` | `/api/tasks?view=media\|favorites\|trash\|folder&folder_id=…` | List tasks with their variants and presets. `media` returns only non-trashed items not in a folder. |
 | `GET` | `/api/tasks/:id` | One task. |
 | `PATCH` | `/api/tasks/:id` | Toggle favourite, trash, or move to folder. |
 | `POST` | `/api/generate` | Run a generation. Body: `{ prompt, character_preset_ids?, style_preset_id?, reference_image_path?, aspect, n, quality, folder_id? }`. |
 | `GET` | `/api/presets` | List active presets. |
 | `POST` | `/api/presets` | Create or fork a preset. |
 | `PATCH` | `/api/presets/:id` | Edit / archive a preset. |
-| `GET` | `/api/folders` | List folders. |
+| `GET` | `/api/folders` | List folders, each with `item_count` (non-trashed items inside). |
 | `POST` | `/api/folders` | Create a folder. |
 | `POST` | `/api/upload` | Upload a reference image. Multipart `file`. Returns `{ path }` for use in `reference_image_path`. |
 | `POST` | `/api/workshop/from-image` | Multipart `file`. Returns `{ prompt }`. |
@@ -103,6 +103,10 @@ The frontend talks to a small REST API on the same origin. If you want to drive 
 ## Why local-first
 
 Image-gen platforms have a habit of shutting down, paywalling features, deleting libraries, or quietly retraining on your inputs. None of that touches a SQLite file on your laptop. If OpenAI ships a better model tomorrow, change one env var. If they sunset the API entirely, swap in another provider — the gallery, presets, and library outlive whichever model you used to fill them.
+
+## Unreleased
+
+- **Media now shows only items that are not in a folder.** "Move to folder" takes an item out of Media; "No folder" puts an item back, and deleting a folder returns its non-trashed items to Media. A trashed item whose folder was deleted lands in Media when restored; if its folder still exists, restoring returns it to that folder. **On upgrade, items you had already moved into folders will no longer appear in Media** — open the folder to find them. Favourites, Trash and the folder views are unchanged.
 
 ## Contributing
 
