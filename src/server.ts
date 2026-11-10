@@ -218,11 +218,18 @@ app.delete('/api/folders/:id', (c) => {
   // the folder row. Either both succeed or neither — no orphan tasks pointing
   // at a folder that no longer exists.
   const moved = db.transaction(() => {
-    const res = db
+    // Report only non-trashed items (what the user sees in the folder); trashed
+    // members still lose their folder in the UPDATE below.
+    const visible = (
+      db
+        .prepare('SELECT COUNT(*) AS n FROM tasks WHERE folder_id = ? AND trashed = 0')
+        .get(id) as { n: number }
+    ).n;
+    db
       .prepare('UPDATE tasks SET folder_id = NULL WHERE folder_id = ?')
       .run(id);
     db.prepare('DELETE FROM folders WHERE id = ?').run(id);
-    return res.changes as number;
+    return visible;
   })();
   return c.json({ ok: true, moved });
 });

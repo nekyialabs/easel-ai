@@ -94,7 +94,7 @@ The frontend talks to a small REST API on the same origin. If you want to drive 
 | `GET` | `/api/presets` | List active presets. |
 | `POST` | `/api/presets` | Create or fork a preset. |
 | `PATCH` | `/api/presets/:id` | Edit / archive a preset. |
-| `GET` | `/api/folders` | List folders. |
+| `GET` | `/api/folders` | List folders, each with `item_count` (non-trashed items inside). |
 | `POST` | `/api/folders` | Create a folder. |
 | `POST` | `/api/upload` | Upload a reference image. Multipart `file`. Returns `{ path }` for use in `reference_image_path`. |
 | `POST` | `/api/workshop/from-image` | Multipart `file`. Returns `{ prompt }`. |
@@ -106,7 +106,7 @@ Image-gen platforms have a habit of shutting down, paywalling features, deleting
 
 ## Unreleased
 
-- **Media now shows only items that are not in a folder.** "Move to folder" takes an item out of Media; "No folder" and deleting a folder put items back. **On upgrade, items you had already moved into folders will no longer appear in Media** — open the folder to find them. Favourites, Trash and the folder views are unchanged.
+- **Media now shows only items that are not in a folder.** "Move to folder" takes an item out of Media; "No folder" puts an item back, and deleting a folder returns its non-trashed items to Media. A trashed item whose folder was deleted lands in Media when restored; if its folder still exists, restoring returns it to that folder. **On upgrade, items you had already moved into folders will no longer appear in Media** — open the folder to find them. Favourites, Trash and the folder views are unchanged.
 
 ## Contributing
 
