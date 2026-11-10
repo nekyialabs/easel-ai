@@ -167,7 +167,13 @@ app.patch('/api/presets/:id', async (c) => {
 // ---- Folders ----
 
 app.get('/api/folders', (c) => {
-  const rows = db.prepare('SELECT * FROM folders ORDER BY name ASC').all() as Folder[];
+  // item_count = non-trashed tasks in the folder (lets the UI tell "nothing yet" from "all in folders").
+  const rows = db
+    .prepare(
+      `SELECT f.*, (SELECT COUNT(*) FROM tasks t WHERE t.folder_id = f.id AND t.trashed = 0) AS item_count
+       FROM folders f ORDER BY f.name ASC`,
+    )
+    .all() as Array<Folder & { item_count: number }>;
   return c.json(rows);
 });
 
@@ -403,7 +409,7 @@ app.post('/api/export', async (c) => {
 });
 
 app.get('/api/tasks', (c) => {
-  const view = c.req.query('view') ?? 'media'; // media | favorites | trash | folder | all
+  const view = c.req.query('view') ?? 'media'; // media (root only) | favorites | trash | folder | all
   const folderId = c.req.query('folder_id') ?? null;
 
   let where = '';
@@ -414,7 +420,7 @@ app.get('/api/tasks', (c) => {
   else if (view === 'folder' && folderId) {
     where = 'WHERE folder_id = ? AND trashed = 0';
     args.push(folderId);
-  } else where = 'WHERE trashed = 0';
+  } else where = 'WHERE trashed = 0 AND folder_id IS NULL'; // media: only items not in any folder
 
   const tasks = db
     .prepare(`SELECT * FROM tasks ${where} ORDER BY created_at DESC LIMIT 500`)

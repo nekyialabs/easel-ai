@@ -1103,7 +1103,11 @@ function renderGallery() {
       trash: { icon: 'trash', title: 'Trash is empty', hint: 'Removed generations land here before they\'re gone forever.' },
       folder: { icon: 'folder', title: 'Folder is empty', hint: 'Generate with this folder open, or move things in from the gallery.' },
     };
-    const e = emptyByView[state.view] ?? emptyByView.media;
+    const e = { ...(emptyByView[state.view] ?? emptyByView.media) };
+    if (state.view === 'media' && state.folders.some((f) => f.item_count > 0)) {
+      e.title = "Everything's in folders";
+      e.hint = 'Nothing is loose in My media. Open a folder from the sidebar, or generate something new.';
+    }
     root.innerHTML = `<div class="empty-state">
       <div class="empty-state-icon">${icon(e.icon, { size: 48 })}</div>
       <div class="empty-state-title">${e.title}</div>
@@ -2026,6 +2030,8 @@ async function refreshView() {
   if (state.view === 'detail') return renderDetail(state.detailId);
   if (state.view === 'workshop') return renderWorkshop();
   await loadTasks();
+  // Folder item counts change when things move, trash or restore; keep the media empty state honest.
+  await loadFolders().catch(() => {});
   renderGallery();
 }
 

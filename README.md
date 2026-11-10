@@ -87,7 +87,7 @@ The frontend talks to a small REST API on the same origin. If you want to drive 
 
 | Method | Path | What it does |
 |---|---|---|
-| `GET` | `/api/tasks?view=media\|favorites\|trash\|folder&folder_id=…` | List tasks with their variants and presets. |
+| `GET` | `/api/tasks?view=media\|favorites\|trash\|folder&folder_id=…` | List tasks with their variants and presets. `media` returns only non-trashed items not in a folder. |
 | `GET` | `/api/tasks/:id` | One task. |
 | `PATCH` | `/api/tasks/:id` | Toggle favourite, trash, or move to folder. |
 | `POST` | `/api/generate` | Run a generation. Body: `{ prompt, character_preset_ids?, style_preset_id?, reference_image_path?, aspect, n, quality, folder_id? }`. |
@@ -103,6 +103,10 @@ The frontend talks to a small REST API on the same origin. If you want to drive 
 ## Why local-first
 
 Image-gen platforms have a habit of shutting down, paywalling features, deleting libraries, or quietly retraining on your inputs. None of that touches a SQLite file on your laptop. If OpenAI ships a better model tomorrow, change one env var. If they sunset the API entirely, swap in another provider — the gallery, presets, and library outlive whichever model you used to fill them.
+
+## Unreleased
+
+- **Media now shows only items that are not in a folder.** "Move to folder" takes an item out of Media; "No folder" and deleting a folder put items back. **On upgrade, items you had already moved into folders will no longer appear in Media** — open the folder to find them. Favourites, Trash and the folder views are unchanged.
 
 ## Contributing
 
