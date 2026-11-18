@@ -14,7 +14,7 @@ export const openai = new OpenAI({ apiKey });
 // Default to gpt-image-1.5 (works without OpenAI org verification).
 // Upgrade to gpt-image-2 by setting EASEL_IMAGE_MODEL=gpt-image-2 — that model
 // requires a verified organisation on platform.openai.com.
-export const IMAGE_MODEL = process.env.EASEL_IMAGE_MODEL ?? 'gpt-image-1.5';
+export const IMAGE_MODEL = process.env.EASEL_IMAGE_MODEL ?? 'gpt-image-2.6-sunburst';
 
 // Text + vision model used by the Workshop (prompt brainstorm, image-to-prompt).
 // Must support image inputs (vision) for /api/workshop/from-image.
